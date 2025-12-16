@@ -119,8 +119,13 @@ class Downloader:
             return DownloadResult(replay_id, False, None, None, resp.status_code, headers, None)
 
         hexsum = h.hexdigest()
-        fname = f"{replay_id}_{hexsum}.{ext}"
-        final_path = self.output_dir / fname
+        first = hexsum[:2]
+        second = hexsum[2:4]
+        remainder = hexsum[4:]
+        target_dir = self.output_dir / first / second
+        target_dir.mkdir(parents=True, exist_ok=True)
+        fname = f"{remainder}.{ext}"
+        final_path = target_dir / fname
         final_path = self._unique_filename(final_path)
         temp_path.rename(final_path)
         try:
