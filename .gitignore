@@ -1,4 +1,13 @@
+# virtual environment directories
 .venv/
 venv/
+
+# IntelliJ files
 .idea/
 *.iml
+
+# default output directories
+logs/
+output/
+replays.db
+
