@@ -57,7 +57,7 @@ def main():
             res = dl.download(rid)
 
             if res.ok:
-                db.upsert_replay(rid, res.sha256, res.filename)
+                db.upsert_replay(rid, res.sha256)
             elif res.status_code == 400: # weirdly enough they return 400 for non-existing replays
                 # store a record marking confirmed non-existence at download time (NULL hash)
                 db.insert_nonexistent(rid)
