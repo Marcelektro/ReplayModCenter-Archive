@@ -73,9 +73,14 @@ class Downloader:
     def download(self, replay_id: int, timeout: int = 30) -> DownloadResult:
 
         url = self.base_url.replace("$id$", str(replay_id))
+
+        headers = {
+            "User-Agent": "ReplayModCenter-Archive/1.0 (https://github.com/Marcelektro/ReplayModCenter-Archive)"
+        }
+
         logger.info("Requesting %s", url)
         try:
-            resp = requests.get(url, timeout=timeout, stream=True)
+            resp = requests.get(url, timeout=timeout, stream=True, headers=headers)
         except Exception as e:
             logger.exception("Request failed for %s: %s", url, e)
             return DownloadResult(replay_id, False, None, None, -1, {}, None)
