@@ -20,7 +20,7 @@ To download a replay from the api, all it takes is an ID int, which luckily seem
 
 ### Implementation details
 - The tool uses a local sqlite database to keep track of downloaded replays and their metadata.
-  - Table `replays` — stores an ID (autoincrement in case of a re-download giving a different replay ID), the ReplayMod Center replay ID, sha256 hash of the replay file, download timestamp.  
+  - Table `replays` — stores an ID (autoincrement in case of a re-download giving a different replay ID), the ReplayMod Center replay ID, sha256 hash of the replay file, filesize in bytes, and download timestamp.  
     There doesn't seem to be anything else returned from the download endpoint. Anything we derive from the replay file itself can be extracted later, so we keep this table minimal.  
     If a replay doesn't exist, we store a record with a NULL hash to avoid re-attempting the download (at least too often).
 

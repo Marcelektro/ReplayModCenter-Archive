@@ -6,6 +6,7 @@ Table schema:
 - id INTEGER PRIMARY KEY AUTOINCREMENT
 - replay_id INTEGER UNIQUE NOT NULL
 - sha256 TEXT NULL
+- filesize INTEGER NULL
 - downloaded_at TEXT NULL
 """
 import sqlite3
@@ -27,11 +28,22 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 replay_id INTEGER UNIQUE NOT NULL,
                 sha256 TEXT,  
+                filesize INTEGER,  
                 downloaded_at TEXT
             );
             """
         )
         self._conn.commit()
+
+        # quick migration
+        cur.execute("PRAGMA table_info(replays)")
+        cols = [r[1] if isinstance(r, tuple) else r["name"] for r in cur.fetchall()]
+        if "filesize" not in cols:
+            cur.execute("ALTER TABLE replays ADD COLUMN filesize INTEGER")
+            self._conn.commit()
+            from logger_config import get_logger
+            logger = get_logger("db")
+            logger.info("Migrated database: added filesize column to replays table")
 
     def get_max_replay_id(self) -> Optional[int]:
         cur = self._conn.cursor()
@@ -50,12 +62,12 @@ class Database:
     def insert_nonexistent(self, replay_id: int) -> None:
         cur = self._conn.cursor()
         cur.execute(
-            "INSERT OR IGNORE INTO replays (replay_id, sha256, downloaded_at) VALUES (?, NULL, NULL)",
+            "INSERT OR IGNORE INTO replays (replay_id, sha256, filesize, downloaded_at) VALUES (?, NULL, NULL, NULL)",
             (replay_id,),
         )
         self._conn.commit()
 
-    def upsert_replay(self, replay_id: int, sha256: Optional[str]) -> None:
+    def upsert_replay(self, replay_id: int, sha256: Optional[str], filesize: Optional[int] = None) -> None:
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
         cur = self._conn.cursor()
         cur.execute(
@@ -65,13 +77,13 @@ class Database:
         row = cur.fetchone()
         if row:
             cur.execute(
-                "UPDATE replays SET sha256 = ?, downloaded_at = ? WHERE replay_id = ?",
-                (sha256, now, replay_id),
+                "UPDATE replays SET sha256 = ?, filesize = ?, downloaded_at = ? WHERE replay_id = ?",
+                (sha256, filesize, now, replay_id),
             )
         else:
             cur.execute(
-                "INSERT INTO replays (replay_id, sha256, downloaded_at) VALUES (?, ?, ?)",
-                (replay_id, sha256, now),
+                "INSERT INTO replays (replay_id, sha256, filesize, downloaded_at) VALUES (?, ?, ?, ?)",
+                (replay_id, sha256, filesize, now),
             )
         self._conn.commit()
 

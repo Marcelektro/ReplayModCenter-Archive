@@ -21,13 +21,14 @@ logger = get_logger("downloader")
 
 
 class DownloadResult:
-    def __init__(self, replay_id: int, ok: bool, sha256: Optional[str], filename: Optional[str], status_code: int, headers: Dict[str, str]):
+    def __init__(self, replay_id: int, ok: bool, sha256: Optional[str], filename: Optional[str], status_code: int, headers: Dict[str, str], filesize: Optional[int]):
         self.replay_id = replay_id
         self.ok = ok
         self.sha256 = sha256
         self.filename = filename
         self.status_code = status_code
         self.headers = headers
+        self.filesize = filesize
 
 
 class Downloader:
@@ -77,7 +78,7 @@ class Downloader:
             resp = requests.get(url, timeout=timeout, stream=True)
         except Exception as e:
             logger.exception("Request failed for %s: %s", url, e)
-            return DownloadResult(replay_id, False, None, None, -1, {})
+            return DownloadResult(replay_id, False, None, None, -1, {}, None)
 
         # log headers and status
         headers = {k: v for k, v in resp.headers.items()}
@@ -91,7 +92,7 @@ class Downloader:
                 logger.debug("Response body (truncated): %s", body)
             except Exception:
                 pass
-            return DownloadResult(replay_id, False, None, None, resp.status_code, headers)
+            return DownloadResult(replay_id, False, None, None, resp.status_code, headers, None)
 
         # compute sha256 while streaming to file
         h = hashlib.sha256()
@@ -114,15 +115,20 @@ class Downloader:
                     temp_path.unlink()
                 except Exception:
                     pass
-            return DownloadResult(replay_id, False, None, None, resp.status_code, headers)
+            # perhaps we throw here instead?
+            return DownloadResult(replay_id, False, None, None, resp.status_code, headers, None)
 
         hexsum = h.hexdigest()
         fname = f"{replay_id}_{hexsum}.{ext}"
         final_path = self.output_dir / fname
         final_path = self._unique_filename(final_path)
         temp_path.rename(final_path)
-        logger.info("Saved replay %s -> %s (sha256=%s)", replay_id, final_path, hexsum)
-        return DownloadResult(replay_id, True, hexsum, str(final_path), resp.status_code, headers)
+        try:
+            filesize = int(final_path.stat().st_size) # compute filesize in bytes
+        except Exception:
+            filesize = None
+        logger.info("Saved replay %s -> %s (sha256=%s, size=%s)", replay_id, final_path, hexsum, filesize)
+        return DownloadResult(replay_id, True, hexsum, str(final_path), resp.status_code, headers, filesize)
 
 
 # if __name__ == "__main__":
