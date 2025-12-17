@@ -116,6 +116,22 @@ class Database:
             )
         self._conn.commit()
 
+    def get_by_replay_id(self, replay_id: int) -> Optional[Tuple[int, Optional[str], Optional[int]]]:
+        """
+        Get replay row by replay_id.
+
+        Returns tuple: (id, sha256, filesize) or None if not found.
+        """
+        cur = self._conn.cursor()
+        cur.execute(
+            "SELECT id, sha256, filesize FROM replays WHERE replay_id = ?",
+            (replay_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return None
+        return int(row["id"]), row["sha256"], row["filesize"]
+
     def stream_replays(self, start_id: int = 0, end_id: Optional[int] = None) -> Iterator[Tuple[int, Optional[str], Optional[int]]]:
         """
         Stream replay rows (id, sha256, filesize) ordered by id.
